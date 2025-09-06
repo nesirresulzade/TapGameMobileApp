@@ -16,6 +16,7 @@ import { auth } from '../../firebaseConfig';
 import { getUserProfile, updateUserProfile } from '../../firebaseConfig';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import CustomAlert from '../components/CustomAlert';
+import LoadingScreen from '../components/LoadingScreen';
 import useCustomAlert from '../hooks/useCustomAlert';
 
 const ProfileScreen = () => {
@@ -167,13 +168,7 @@ const ProfileScreen = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Yüklənir...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -403,15 +398,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#a8a8a8',
   },
   header: {
     alignItems: 'center',

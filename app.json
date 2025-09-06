@@ -4,21 +4,32 @@
     "slug": "tap-game",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/ic_launcher.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#292953"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/ic_launcher.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.resulzade.tapgame"
     },
     "web": {
-      "favicon": "./assets/ic_launcher.png"
+      "favicon": "./assets/icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0530cbb1-d6c4-4694-99bf-aad688fae89a"
+      }
     }
   }
 }

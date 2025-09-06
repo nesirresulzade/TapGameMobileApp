@@ -1,14 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
 
 const SplashScreen = ({ onAnimationFinish }) => {
     const animation = useRef(null);
-
-    useEffect(() => {
-        // Animasiya avtomatik başlayacaq (autoPlay=true)
-        // Əlavə play() çağırmağa ehtiyac yoxdur
-    }, []);
 
     return (
         <View style={styles.container}>

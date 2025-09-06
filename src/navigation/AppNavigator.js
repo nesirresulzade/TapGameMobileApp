@@ -223,7 +223,7 @@ const AppNavigator = () => {
     // Animasiyanı 4 saniyə sonra avtomatik bitir
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 4000);
+    }, 1500);
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
