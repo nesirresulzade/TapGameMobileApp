@@ -1,11 +1,45 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingModal from './LoadingModal';
 
 const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, onLeaderboard }) => {
-  if (!gameResult) return null;
+  const [showLoading, setShowLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const blurAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const { score, time, accuracy, stars } = gameResult;
+  const { score, time, accuracy, stars } = gameResult || {};
+
+  useEffect(() => {
+    if (showLoading) {
+      Animated.parallel([
+        Animated.timing(blurAnim, {
+          toValue: 0.3,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(blurAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showLoading]);
 
   const getStarDisplay = () => {
     const starArray = [];
@@ -36,6 +70,35 @@ const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, on
     return "#e74c3c";
   };
 
+  const handleRestart = () => {
+    setLoadingMessage('Oyun yenidən başladılır...');
+    setShowLoading(true);
+    setTimeout(() => {
+      setShowLoading(false);
+      onRestart();
+    }, 2000);
+  };
+
+  const handleGoHome = () => {
+    setLoadingMessage('Ana səhifəyə keçilir...');
+    setShowLoading(true);
+    setTimeout(() => {
+      setShowLoading(false);
+      onGoHome();
+    }, 2000);
+  };
+
+  const handleLeaderboard = () => {
+    setLoadingMessage('Liderlər cədvəlinə keçilir...');
+    setShowLoading(true);
+    setTimeout(() => {
+      setShowLoading(false);
+      onLeaderboard();
+    }, 2000);
+  };
+
+  if (!gameResult) return null;
+
   return (
     <Modal
       visible={visible}
@@ -44,7 +107,13 @@ const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, on
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <Animated.View style={[
+          styles.modalContent,
+          {
+            opacity: blurAnim,
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>🎉 Oyun Bitdi!</Text>
@@ -89,7 +158,7 @@ const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, on
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={[styles.button, styles.restartButton]}
-              onPress={onRestart}
+              onPress={handleRestart}
             >
               <Ionicons name="refresh" size={20} color="#ffffff" />
               <Text style={styles.buttonText}>Yenidən</Text>
@@ -97,7 +166,7 @@ const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, on
 
             <TouchableOpacity
               style={[styles.button, styles.homeButton]}
-              onPress={onGoHome}
+              onPress={handleGoHome}
             >
               <Ionicons name="home" size={20} color="#ffffff" />
               <Text style={styles.buttonText}>Ana Səhifə</Text>
@@ -105,14 +174,20 @@ const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, on
 
             <TouchableOpacity
               style={[styles.button, styles.leaderboardButton]}
-              onPress={onLeaderboard}
+              onPress={handleLeaderboard}
             >
               <Ionicons name="trophy" size={20} color="#ffffff" />
               <Text style={styles.buttonText}>Liderlər</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
+
+      {/* Loading Modal */}
+      <LoadingModal
+        visible={showLoading}
+        message={loadingMessage}
+      />
     </Modal>
   );
 };
@@ -120,7 +195,7 @@ const GameResultModal = ({ visible, onClose, gameResult, onRestart, onGoHome, on
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,

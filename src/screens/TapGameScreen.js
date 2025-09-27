@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import GameZone from '../components/GameZone';
 
 const LEVELS = [
@@ -17,6 +17,13 @@ export default function TapGameScreen() {
   const navigation = useNavigation();
   const [selectedLevel, setSelectedLevel] = useState(LEVELS[0]);
   const [showGameZone, setShowGameZone] = useState(false);
+
+  // Reset game zone when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      setShowGameZone(false);
+    }, [])
+  );
 
   const handleGameEnd = () => {
     setShowGameZone(false);

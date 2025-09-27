@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../../firebaseConfig';
 import { saveGameResult } from '../../firebaseConfig';
 import GameResultModal from './GameResultModal';
+import LoadingModal from './LoadingModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -21,20 +23,27 @@ const GameZone = ({ selectedLevel, onGameEnd }) => {
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerRef = useRef(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [gameResult, setGameResult] = useState(null);
 
   const totalTargets = selectedLevel.targets;
 
   const playArea = useMemo(() => {
-    // Use full screen minus small padding
-    const usableWidth = SCREEN_WIDTH - PLAY_AREA_PADDING * 2 - TARGET_SIZE;
-    const usableHeight = SCREEN_HEIGHT - PLAY_AREA_PADDING * 2 - TARGET_SIZE;
-    return { usableWidth: Math.max(usableWidth, 50), usableHeight: Math.max(usableHeight, 50) };
+    // Use fixed safe area values for positioning
+    const topSafeArea = 60; // Status bar + small padding
+    const bottomSafeArea = 60; // Home indicator + small padding
+    const usableWidth = SCREEN_WIDTH - TARGET_SIZE;
+    const usableHeight = SCREEN_HEIGHT - topSafeArea - bottomSafeArea - TARGET_SIZE;
+    return { 
+      usableWidth: Math.max(usableWidth, 50), 
+      usableHeight: Math.max(usableHeight, 50),
+      topOffset: topSafeArea
+    };
   }, []);
 
   const randomPosition = useCallback(() => {
-    const x = Math.floor(Math.random() * playArea.usableWidth) + PLAY_AREA_PADDING;
-    const y = Math.floor(Math.random() * playArea.usableHeight) + PLAY_AREA_PADDING;
+    const x = Math.floor(Math.random() * playArea.usableWidth);
+    const y = Math.floor(Math.random() * playArea.usableHeight) + playArea.topOffset;
     return { x, y };
   }, [playArea]);
 
@@ -49,17 +58,21 @@ const GameZone = ({ selectedLevel, onGameEnd }) => {
     setStartTime(0);
     setGameStarted(false);
     setShowResultModal(false);
+    setShowLoadingModal(false);
     setGameResult(null);
   }, []);
 
   useEffect(() => {
+    // Reset game when component mounts
+    resetGame();
+    
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     };
-  }, []);
+  }, [resetGame]);
 
   const startGame = useCallback(() => {
     resetGame();
@@ -97,6 +110,10 @@ const GameZone = ({ selectedLevel, onGameEnd }) => {
       // Finish game
       stopTimer();
       setGameStarted(false); // Stop the game immediately
+      setTargetPos({ x: -1000, y: -1000 }); // Hide target immediately
+      
+      // Show loading modal
+      setShowLoadingModal(true);
       
       const totalTimeMs = Date.now() - startTime;
       const accuracy = nextHits / (nextHits + misses);
@@ -124,14 +141,18 @@ const GameZone = ({ selectedLevel, onGameEnd }) => {
         // non-blocking
       }
 
-      // Show result modal
-      setGameResult({
-        score,
-        time: timeSec,
-        accuracy: (accuracy * 100).toFixed(0),
-        stars,
-      });
-      setShowResultModal(true);
+      // Hide loading modal and show result modal
+      setTimeout(() => {
+        setShowLoadingModal(false);
+        setGameResult({
+          score,
+          time: timeSec,
+          accuracy: (accuracy * 100).toFixed(0),
+          stars,
+        });
+        setShowResultModal(true);
+      }, 1500); // 1.5 saniyə loading göstər
+      
       return;
     }
     placeTarget();
@@ -161,53 +182,55 @@ const GameZone = ({ selectedLevel, onGameEnd }) => {
   };
 
   return (
-    <View style={styles.gameZone}>
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={onGameEnd}
-      >
-        <Ionicons name="arrow-back" size={24} color="#ffffff" />
-      </TouchableOpacity>
-
-      {/* Game Stats Overlay */}
-      <View style={styles.gameStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Hədəf</Text>
-          <Text style={styles.statValue}>{hits}/{totalTargets}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Zaman</Text>
-          <Text style={styles.statValue}>{gameStarted ? elapsedText : '0.00s'}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Səhv</Text>
-          <Text style={styles.statValue}>{misses}</Text>
-        </View>
-      </View>
-
-      {/* Start Button */}
-      {!gameStarted && (
-        <View style={styles.startButtonContainer}>
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Ionicons name="flash" color="#ffffff" size={24} />
-            <Text style={styles.startButtonText}>Oyunu Başlat</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Game Area */}
+    <SafeAreaView style={styles.gameZone} edges={['top', 'left', 'right', 'bottom']}>
+      {/* Game Area - Full Screen */}
       <TouchableOpacity style={styles.playArea} activeOpacity={1} onPress={onMiss}>
+        {!gameStarted && (
+          <View style={styles.startButtonContainer}>
+            {/* Back to Home Button */}
+            <TouchableOpacity style={styles.backToHomeButton} onPress={onGameEnd}>
+              <Ionicons name="arrow-back" color="#ffffff" size={20} />
+              <Text style={styles.backToHomeText}>Ana Səhifə</Text>
+            </TouchableOpacity>
+            
+            {/* Start Game Button */}
+            <TouchableOpacity style={styles.startButton} onPress={startGame}>
+              <Ionicons name="flash" color="#ffffff" size={24} />
+              <Text style={styles.startButtonText}>Oyunu Başlat</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
         {gameStarted && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={onHit}
-            style={[styles.target, { left: targetPos.x, top: targetPos.y }]}
-          >
-            <Ionicons name="radio-button-on" size={36} color="#fff" />
-          </TouchableOpacity>
+          <>
+            {/* Hidden back button - top left corner */}
+            <TouchableOpacity 
+              style={styles.hiddenBackButton} 
+              onPress={onGameEnd}
+            >
+              <Ionicons name="arrow-back" size={20} color="transparent" />
+            </TouchableOpacity>
+            
+            {/* Click target - only show if game is active and target is visible */}
+            {!showLoadingModal && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={onHit}
+                style={[styles.target, { left: targetPos.x, top: targetPos.y }]}
+              >
+                <Ionicons name="radio-button-on" size={36} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </TouchableOpacity>
+
+
+      {/* Loading Modal */}
+      <LoadingModal
+        visible={showLoadingModal}
+        message="Nəticələr hazırlanır..."
+      />
 
       {/* Game Result Modal */}
       <GameResultModal
@@ -218,7 +241,7 @@ const GameZone = ({ selectedLevel, onGameEnd }) => {
         onGoHome={handleGoHome}
         onLeaderboard={handleLeaderboard}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -227,52 +250,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f1419',
     position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 20,
-    backgroundColor: 'rgba(22, 33, 62, 0.9)',
-    padding: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#27ae60',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  gameStats: {
-    position: 'absolute',
-    top: 50,
-    left: 80,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    zIndex: 10,
-  },
-  statItem: {
-    backgroundColor: 'rgba(22, 33, 62, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#27ae60',
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  statLabel: {
-    color: '#a8a8a8',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 2,
   },
   startButtonContainer: {
     position: 'absolute',
@@ -283,6 +260,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 5,
+    gap: 20,
+  },
+  backToHomeButton: {
+    backgroundColor: '#0f3460',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#27ae60',
+  },
+  backToHomeText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
   },
   startButton: {
     backgroundColor: '#27ae60',
@@ -308,6 +307,14 @@ const styles = StyleSheet.create({
   playArea: {
     flex: 1,
     position: 'relative',
+  },
+  hiddenBackButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: 40,
+    height: 40,
+    zIndex: 10,
   },
   target: {
     position: 'absolute',

@@ -64,8 +64,16 @@ const CustomAlert = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.alertContainer, { borderColor: colors.borderColor }]}>
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1} 
+        onPress={onClose}
+      >
+        <TouchableOpacity 
+          style={[styles.alertContainer, { borderColor: colors.borderColor }]}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
           {/* Icon */}
           <View style={[styles.iconContainer, { backgroundColor: colors.iconBg }]}>
             <Ionicons name={icon.name} size={32} color="#ffffff" />
@@ -113,8 +121,8 @@ const CustomAlert = ({
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };
